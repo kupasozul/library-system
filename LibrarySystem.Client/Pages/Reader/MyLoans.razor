@@ -1,0 +1,75 @@
+﻿@page "/reader/my-loans"
+@using LibrarySystem.Client.Models
+@using LibrarySystem.Client.Services
+@inject LoanService LoanService
+
+<PageTitle>Saját Kölcsönzéseim</PageTitle>
+
+<div class="container mt-4">
+    <h2 class="mb-4">Saját kölcsönzések és állapotok</h2>
+
+    <div class="mb-4 p-3 border rounded bg-light">
+        <label class="form-label">Adja meg az olvasószámát a listázáshoz:</label>
+        <div class="input-group w-25">
+            <input type="number" class="form-control" @bind="readerId" />
+            <button class="btn btn-primary" @onclick="LoadMyLoans">Lekérés</button>
+        </div>
+    </div>
+
+    @if (myLoans == null)
+    {
+        <p><em>Kérjük, adja meg olvasószámát a kölcsönzések megtekintéséhez.</em></p>
+    }
+    else if (!myLoans.Any())
+    {
+        <div class="alert alert-warning">Ezzel az olvasószámmal jelenleg nincs aktív kölcsönzés.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover shadow-sm">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Könyv leltári száma</th>
+                        <th>Kölcsönzés ideje</th>
+                        <th>Visszahozási határidő</th>
+                        <th>Késedelmi díj</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var loan in myLoans)
+                    {
+                        <tr>
+                            <td>@loan.BookInventoryNumber</td>
+                            <td>@loan.LoanDate.ToShortDateString()</td>
+                            <td>@loan.ReturnDate.ToShortDateString()</td>
+                            <td>
+                                @if (loan.PenaltyFee > 0)
+                                {
+                                    <span class="text-danger fw-bold">@loan.PenaltyFee Ft</span>
+                                }
+                                else
+                                {
+                                    <span class="text-success">Nincs hátralék</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private int readerId;
+    private List<Loan>? myLoans;
+
+    private async Task LoadMyLoans()
+    {
+        if (readerId > 0)
+        {
+            myLoans = await LoanService.GetReaderLoansAsync(readerId);
+        }
+    }
+}
