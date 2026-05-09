@@ -35,8 +35,8 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Kiadás éve</label>
-                        <InputNumber @bind-Value="editingBook.ReleaseYear" class="form-control" />
-                        <ValidationMessage For="@(() => editingBook.ReleaseYear)" class="text-danger" />
+                        <InputNumber @bind-Value="editingBook.PublicationYear" class="form-control" />
+                        <ValidationMessage For="@(() => editingBook.PublicationYear)" class="text-danger" />
                     </div>
                 </div>
 
@@ -76,7 +76,7 @@
                         <td>@book.InventoryNumber</td>
                         <td><strong>@book.Title</strong></td>
                         <td>@book.Author</td>
-                        <td>@book.Publisher (@book.ReleaseYear)</td>
+                        <td>@book.Publisher (@book.PublicationYear)</td>
                         <td>
                             <span class="badge @(book.IsBorrowed ? "bg-warning text-dark" : "bg-success")">
                                 @(book.IsBorrowed ? "Kikölcsönözve" : "Elérhető")
@@ -131,7 +131,7 @@
             Title = book.Title,
             Author = book.Author,
             Publisher = book.Publisher,
-            ReleaseYear = book.ReleaseYear,
+            PublicationYear = book.PublicationYear,
             IsBorrowed = book.IsBorrowed
         };
     }

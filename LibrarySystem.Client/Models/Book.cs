@@ -20,7 +20,7 @@ namespace LibrarySystem.Client.Models
 
         [Required(ErrorMessage = "A kiadás éve kötelező!")]
         [Range(0, 2100, ErrorMessage = "A kiadás éve nem lehet negatív szám!")] //
-        public int ReleaseYear { get; set; }
+        public int PublicationYear { get; set; }
         
         public bool IsBorrowed { get; set; }
     }

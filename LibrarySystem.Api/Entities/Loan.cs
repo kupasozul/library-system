@@ -20,6 +20,10 @@ namespace LibrarySystem.Api.Entities
 
         [Required(ErrorMessage = "A határidő kötelező.")]
         public DateTime ReturnDeadline { get; set; }
+        
+        // Ez a mező nem kerül az adatbázisba, de az API visszaadja 
+        [NotMapped]
+        public decimal PenaltyFee { get; set; }
 
         public Reader? Reader { get; set; }
         public Book? Book { get; set; }

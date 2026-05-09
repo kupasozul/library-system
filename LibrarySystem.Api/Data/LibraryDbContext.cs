@@ -16,9 +16,12 @@ namespace LibrarySystem.Api.Data
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<Book>().HasData(
-                new Book { BookNumber = 1, Title = "A Pál utcai fiúk", Author = "Molnár Ferenc", Publisher = "Móra", PublicationYear = 1907 },
-                new Book { BookNumber = 2, Title = "Egri csillagok", Author = "Gárdonyi Géza", Publisher = "Dante", PublicationYear = 1901 },
-                new Book { BookNumber = 3, Title = "Clean Code", Author = "Robert C. Martin", Publisher = "Prentice Hall", PublicationYear = 2008 }
+                new Book { InventoryNumber = 1, Title = "A Pál utcai fiúk", Author = "Molnár Ferenc", Publisher = 
+                    "Móra", ReleaseYear = 1907 },
+                new Book { InventoryNumber = 2, Title = "Egri csillagok", Author = "Gárdonyi Géza", Publisher = 
+                    "Dante", ReleaseYear = 1901 },
+                new Book { InventoryNumber = 3, Title = "Clean Code", Author = "Robert C. Martin", Publisher = 
+                    "Prentice Hall", ReleaseYear = 2008 }
             );
 
             modelBuilder.Entity<Reader>().HasData(
