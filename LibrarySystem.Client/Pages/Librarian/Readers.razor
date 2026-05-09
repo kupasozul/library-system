@@ -1,0 +1,135 @@
+﻿@page "/librarian/readers"
+@using LibrarySystem.Client.Models
+@using LibrarySystem.Client.Services
+@inject ReaderService ReaderService
+
+<PageTitle>Olvasók Kezelése</PageTitle>
+
+<div class="container mt-4">
+    <h2 class="mb-4">Könyvtári Nyilvántartás - Olvasók</h2>
+
+    @* SZERKESZTŐ ÉS LÉTREHOZÓ PANEL *@
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">@(editingReader.ReaderNumber == 0 ? "Új olvasó regisztrálása" : "Olvasó adatainak módosítása")</h5>
+        </div>
+        <div class="card-body">
+            <EditForm Model="@editingReader" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
+                
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Név</label>
+                        <InputText @bind-Value="editingReader.Name" class="form-control" />
+                        <ValidationMessage For="@(() => editingReader.Name)" class="text-danger" />
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label">Lakcím</label>
+                        <InputText @bind-Value="editingReader.Address" class="form-control" />
+                        <ValidationMessage For="@(() => editingReader.Address)" class="text-danger" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Születési dátum</label>
+                        <InputDate @bind-Value="editingReader.BirthDate" class="form-control" />
+                        <ValidationMessage For="@(() => editingReader.BirthDate)" class="text-danger" />
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-success">Mentés</button>
+                    @if (editingReader.ReaderNumber != 0)
+                    {
+                        <button type="button" class="btn btn-secondary ms-2" @onclick="ResetForm">Mégse</button>
+                    }
+                </div>
+            </EditForm>
+        </div>
+    </div>
+
+    @* LISTA *@
+    @if (readers == null)
+    {
+        <div class="text-center"><p><em>Betöltés...</em></p></div>
+    }
+    else
+    {
+        <table class="table table-hover border">
+            <thead class="table-light">
+                <tr>
+                    <th>Olvasószám</th>
+                    <th>Név</th>
+                    <th>Lakcím</th>
+                    <th>Születési dátum</th>
+                    <th>Műveletek</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var reader in readers)
+                {
+                    <tr>
+                        <td>@reader.ReaderNumber</td>
+                        <td><strong>@reader.Name</strong></td>
+                        <td>@reader.Address</td>
+                        <td>@reader.BirthDate.ToShortDateString()</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="() => PrepareEdit(reader)">Módosítás</button>
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteReader(reader.ReaderNumber)">Törlés</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private List<Reader>? readers;
+    private Reader editingReader = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReaders();
+    }
+
+    private async Task LoadReaders()
+    {
+        readers = await ReaderService.GetReadersAsync();
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (editingReader.ReaderNumber == 0)
+        {
+            await ReaderService.AddReaderAsync(editingReader);
+        }
+        else
+        {
+            await ReaderService.UpdateReaderAsync(editingReader.ReaderNumber, editingReader);
+        }
+
+        ResetForm();
+        await LoadReaders();
+    }
+
+    private void PrepareEdit(Reader reader)
+    {
+        editingReader = new Reader
+        {
+            ReaderNumber = reader.ReaderNumber,
+            Name = reader.Name,
+            Address = reader.Address,
+            BirthDate = reader.BirthDate
+        };
+    }
+
+    private void ResetForm()
+    {
+        editingReader = new Reader();
+    }
+
+    private async Task DeleteReader(int id)
+    {
+        await ReaderService.DeleteReaderAsync(id);
+        await LoadReaders();
+    }
+}
