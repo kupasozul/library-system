@@ -1,0 +1,149 @@
+﻿@page "/librarian/books"
+@using LibrarySystem.Client.Models
+@using LibrarySystem.Client.Services
+@inject BookService BookService
+
+<PageTitle>Könyvek Kezelése</PageTitle>
+
+<div class="container mt-4">
+    <h2 class="mb-4">Könyvtári Nyilvántartás - Könyvek</h2>
+
+    @* SZERKESZTŐ ÉS LÉTREHOZÓ PANEL *@
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">@(editingBook.InventoryNumber == 0 ? "Új könyv felvétele" : "Könyv adatainak módosítása")</h5>
+        </div>
+        <div class="card-body">
+            <EditForm Model="@editingBook" OnValidSubmit="HandleSubmit">
+                <DataAnnotationsValidator />
+                
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Cím</label>
+                        <InputText @bind-Value="editingBook.Title" class="form-control" />
+                        <ValidationMessage For="@(() => editingBook.Title)" class="text-danger" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Szerző</label>
+                        <InputText @bind-Value="editingBook.Author" class="form-control" />
+                        <ValidationMessage For="@(() => editingBook.Author)" class="text-danger" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Kiadó</label>
+                        <InputText @bind-Value="editingBook.Publisher" class="form-control" />
+                        <ValidationMessage For="@(() => editingBook.Publisher)" class="text-danger" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Kiadás éve</label>
+                        <InputNumber @bind-Value="editingBook.ReleaseYear" class="form-control" />
+                        <ValidationMessage For="@(() => editingBook.ReleaseYear)" class="text-danger" />
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-success">Mentés</button>
+                    @if (editingBook.InventoryNumber != 0)
+                    {
+                        <button type="button" class="btn btn-secondary ms-2" @onclick="ResetForm">Mégse</button>
+                    }
+                </div>
+            </EditForm>
+        </div>
+    </div>
+
+    @* LISTA *@
+    @if (books == null)
+    {
+        <div class="text-center"><p><em>Betöltés...</em></p></div>
+    }
+    else
+    {
+        <table class="table table-hover border">
+            <thead class="table-light">
+                <tr>
+                    <th>Leltári szám</th>
+                    <th>Cím</th>
+                    <th>Szerző</th>
+                    <th>Kiadó (Év)</th>
+                    <th>Állapot</th>
+                    <th>Műveletek</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var book in books)
+                {
+                    <tr>
+                        <td>@book.InventoryNumber</td>
+                        <td><strong>@book.Title</strong></td>
+                        <td>@book.Author</td>
+                        <td>@book.Publisher (@book.ReleaseYear)</td>
+                        <td>
+                            <span class="badge @(book.IsBorrowed ? "bg-warning text-dark" : "bg-success")">
+                                @(book.IsBorrowed ? "Kikölcsönözve" : "Elérhető")
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" @onclick="() => PrepareEdit(book)">Módosítás</button>
+                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteBook(book.InventoryNumber)">Törlés</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    private List<Book>? books;
+    private Book editingBook = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadBooks();
+    }
+
+    private async Task LoadBooks()
+    {
+        books = await BookService.GetBooksAsync();
+    }
+
+    private async Task HandleSubmit()
+    {
+        if (editingBook.InventoryNumber == 0)
+        {
+            await BookService.AddBookAsync(editingBook);
+        }
+        else
+        {
+            await BookService.UpdateBookAsync(editingBook.InventoryNumber, editingBook);
+        }
+
+        ResetForm();
+        await LoadBooks();
+    }
+
+    private void PrepareEdit(Book book)
+    {
+        // Új példányt hozunk létre, hogy ne a listában lévőt módosítsuk azonnal
+        editingBook = new Book
+        {
+            InventoryNumber = book.InventoryNumber,
+            Title = book.Title,
+            Author = book.Author,
+            Publisher = book.Publisher,
+            ReleaseYear = book.ReleaseYear,
+            IsBorrowed = book.IsBorrowed
+        };
+    }
+
+    private void ResetForm()
+    {
+        editingBook = new Book();
+    }
+
+    private async Task DeleteBook(int id)
+    {
+        await BookService.DeleteBookAsync(id);
+        await LoadBooks();
+    }
+}
