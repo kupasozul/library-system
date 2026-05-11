@@ -1,108 +1,102 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using LibrarySystem.Api.Data;
 using LibrarySystem.Api.Entities;
 
-[Route("api/[controller]")]
-[ApiController]
-public class LoansController : ControllerBase
+namespace LibrarySystem.Api.Controllers
 {
-    private readonly LibraryDbContext _context;
-
-    public LoansController(LibraryDbContext context)
+    [Route("api/[controller]")]
+    [ApiController]
+    public class LoansController : ControllerBase
     {
-        _context = context;
-    }
+        private readonly LibraryDbContext _context;
 
-    [HttpGet]
-    public async Task<ActionResult<IEnumerable<Loan>>> GetLoans()
-    {
-        var loans = await _context.Loans.ToListAsync();
-        
-        // Késedelmi díj kiszámítása minden elemnél a Backend oldalon
-        foreach (var loan in loans)
+        public LoansController(LibraryDbContext context)
         {
-            loan.PenaltyFee = CalculatePenalty(loan.ReturnDeadline);
+            _context = context;
         }
-        
-        return loans;
-    }
-    
-    [HttpGet("reader/{readerNumber}")] 
-    public async Task<ActionResult<IEnumerable<Loan>>> GetReaderLoans(int readerNumber)
-    {
-        var loans = await _context.Loans
-            .Where(l => l.ReaderNumber == readerNumber)
-            .ToListAsync();
-    
-        foreach (var loan in loans)
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Loan>>> GetLoans()
         {
-            loan.PenaltyFee = CalculatePenalty(loan.ReturnDeadline);
+            var loans = await _context.Loans.ToListAsync();
+
+            foreach (var loan in loans)
+            {
+                loan.PenaltyFee = CalculatePenalty(loan.ReturnDeadline);
+            }
+
+            return loans;
         }
-    
-        return loans;
-    }
 
-    [HttpPost]
-    public async Task<ActionResult<Loan>> PostLoan(Loan loan)
-    {
-        if (loan.LoanDate.Date < DateTime.Today) return BadRequest("Érvénytelen dátum.");
-        
-        var book = await _context.Books.FirstOrDefaultAsync(b => b.InventoryNumber == loan.BookInventoryNumber);
-    
-        if (book == null) return NotFound("A könyv nem található.");
-        if (book.IsBorrowed) return BadRequest("Ez a könyv már ki van kölcsönözve.");
-        
-        book.IsBorrowed = true;
-        
-        _context.Loans.Add(loan);
-        await _context.SaveChangesAsync();
-
-        return Ok(loan);
-    }
-
-    private decimal CalculatePenalty(DateTime returnDeadline)
-    {
-        if (DateTime.Now <= returnDeadline) return 0;
-
-        int delayDays = (DateTime.Now - returnDeadline).Days;
-        decimal baseFee = 100;
-        int multiplier = 1;
-
-        // Szorzók a PDF alapján
-        if (delayDays <= 10) multiplier = 1;
-        else if (delayDays <= 15) multiplier = 2; 
-        else multiplier = 3; 
-
-        return baseFee * delayDays * multiplier; 
-    }
-    
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> ReturnBook(int id)
-    {
-        
-        Console.WriteLine($"Törlési kérés érkezett a következő ID-val: {id}");
-
-       
-        var loan = await _context.Loans.FirstOrDefaultAsync(l => l.LoanId == id);
-    
-        if (loan == null) 
+        [HttpGet("reader/{readerNumber}")]
+        public async Task<ActionResult<IEnumerable<Loan>>> GetReaderLoans(int readerNumber)
         {
-            
-            Console.WriteLine($"Hiba: Nincs kölcsönzés az adatbázisban {id} azonosítóval.");
-            return NotFound();
+            var loans = await _context.Loans
+                .Where(l => l.ReaderNumber == readerNumber)
+                .ToListAsync();
+
+            foreach (var loan in loans)
+            {
+                loan.PenaltyFee = CalculatePenalty(loan.ReturnDeadline);
+            }
+
+            return loans;
         }
-        
-        var book = await _context.Books.FirstOrDefaultAsync(b => b.InventoryNumber == loan.BookInventoryNumber);
-        if (book != null)
+
+        [HttpPost]
+        public async Task<ActionResult<Loan>> PostLoan(Loan loan)
         {
-            book.IsBorrowed = false;
+            if (loan.LoanDate.Date < DateTime.Today) return BadRequest("Érvénytelen dátum.");
+
+            var book = await _context.Books.FirstOrDefaultAsync(b => b.InventoryNumber == loan.BookInventoryNumber);
+
+            if (book == null) return NotFound("A könyv nem található.");
+            if (book.IsBorrowed) return BadRequest("Ez a könyv már ki van kölcsönözve.");
+
+            book.IsBorrowed = true;
+
+            _context.Loans.Add(loan);
+            await _context.SaveChangesAsync();
+
+            return Ok(loan);
         }
-    
-        _context.Loans.Remove(loan);
-        await _context.SaveChangesAsync();
-    
-        return NoContent();
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> ReturnBook(int id)
+        {
+            var loan = await _context.Loans.FirstOrDefaultAsync(l => l.LoanId == id);
+
+            if (loan == null)
+            {
+                return NotFound();
+            }
+
+            var book = await _context.Books.FirstOrDefaultAsync(b => b.InventoryNumber == loan.BookInventoryNumber);
+            if (book != null)
+            {
+                book.IsBorrowed = false;
+            }
+
+            _context.Loans.Remove(loan);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        private decimal CalculatePenalty(DateTime returnDeadline)
+        {
+            if (DateTime.Now <= returnDeadline) return 0;
+
+            int delayDays = (DateTime.Now - returnDeadline).Days;
+            decimal baseFee = 100;
+            int multiplier;
+
+            if (delayDays <= 10) multiplier = 1;
+            else if (delayDays <= 15) multiplier = 2;
+            else multiplier = 3;
+
+            return baseFee * delayDays * multiplier;
+        }
     }
-    
 }
