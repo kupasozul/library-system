@@ -5,11 +5,12 @@ using LibrarySystem.Api.Entities;
 
 namespace LibrarySystem.Api.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/[controller]")]
     public class LoansController : ControllerBase
     {
         private readonly LibraryDbContext _context;
+        private readonly int _baseFee = 100;
 
         public LoansController(LibraryDbContext context)
         {
@@ -19,63 +20,82 @@ namespace LibrarySystem.Api.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Loan>>> GetLoans()
         {
-            var loans = await _context.Loans.ToListAsync();
-
-            foreach (var loan in loans)
-            {
-                loan.PenaltyFee = CalculatePenalty(loan.ReturnDeadline);
-            }
-
-            return loans;
-        }
-
-        [HttpGet("reader/{readerNumber}")]
-        public async Task<ActionResult<IEnumerable<Loan>>> GetReaderLoans(int readerNumber)
-        {
             var loans = await _context.Loans
-                .Where(l => l.ReaderNumber == readerNumber)
+                .Include(l => l.Book)
+                .Include(l => l.Reader)
                 .ToListAsync();
 
             foreach (var loan in loans)
             {
-                loan.PenaltyFee = CalculatePenalty(loan.ReturnDeadline);
+                loan.LateFee = CalculateLateFee(loan.ReturnDeadline);
             }
 
             return loans;
         }
 
-        [HttpPost]
-        public async Task<ActionResult<Loan>> PostLoan(Loan loan)
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Loan>> GetLoan(int id)
         {
-            if (loan.LoanDate.Date < DateTime.Today) return BadRequest("Érvénytelen dátum.");
-
-            var book = await _context.Books.FirstOrDefaultAsync(b => b.InventoryNumber == loan.BookInventoryNumber);
-
-            if (book == null) return NotFound("A könyv nem található.");
-            if (book.IsBorrowed) return BadRequest("Ez a könyv már ki van kölcsönözve.");
-
-            book.IsBorrowed = true;
-
-            _context.Loans.Add(loan);
-            await _context.SaveChangesAsync();
-
-            return Ok(loan);
-        }
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> ReturnBook(int id)
-        {
-            var loan = await _context.Loans.FirstOrDefaultAsync(l => l.LoanId == id);
+            var loan = await _context.Loans
+                .Include(l => l.Book)
+                .Include(l => l.Reader)
+                .FirstOrDefaultAsync(l => l.LoanId == id);
 
             if (loan == null)
             {
                 return NotFound();
             }
 
-            var book = await _context.Books.FirstOrDefaultAsync(b => b.InventoryNumber == loan.BookInventoryNumber);
-            if (book != null)
+            loan.LateFee = CalculateLateFee(loan.ReturnDeadline);
+
+            return loan;
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<Loan>> PostLoan(Loan loan)
+        {
+            _context.Loans.Add(loan);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction(nameof(GetLoan), new { id = loan.LoanId }, loan);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutLoan(int id, Loan loan)
+        {
+            if (id != loan.LoanId)
             {
-                book.IsBorrowed = false;
+                return BadRequest();
+            }
+
+            _context.Entry(loan).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!LoanExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteLoan(int id)
+        {
+            var loan = await _context.Loans.FindAsync(id);
+            if (loan == null)
+            {
+                return NotFound();
             }
 
             _context.Loans.Remove(loan);
@@ -84,19 +104,24 @@ namespace LibrarySystem.Api.Controllers
             return NoContent();
         }
 
-        private decimal CalculatePenalty(DateTime returnDeadline)
+        private bool LoanExists(int id)
         {
-            if (DateTime.Now <= returnDeadline) return 0;
+            return _context.Loans.Any(e => e.LoanId == id);
+        }
 
-            int delayDays = (DateTime.Now - returnDeadline).Days;
-            decimal baseFee = 100;
-            int multiplier;
+        private int CalculateLateFee(DateTime returnDeadline)
+        {
+            var today = DateTime.Today;
+            if (today <= returnDeadline.Date) return 0;
 
-            if (delayDays <= 10) multiplier = 1;
-            else if (delayDays <= 15) multiplier = 2;
-            else multiplier = 3;
+            int daysLate = (today - returnDeadline.Date).Days;
+            int multiplier = 1;
 
-            return baseFee * delayDays * multiplier;
+            if (daysLate >= 1 && daysLate <= 10) multiplier = 1;
+            else if (daysLate >= 11 && daysLate <= 15) multiplier = 2;
+            else if (daysLate >= 16) multiplier = 3;
+
+            return _baseFee * daysLate * multiplier;
         }
     }
 }

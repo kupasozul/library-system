@@ -7,7 +7,7 @@ namespace LibrarySystem.Api.Entities
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int InventoryNumber { get; set; }
+        public int BookNumber { get; set; }
 
         [Required(ErrorMessage = "A könyv címe kötelező.")]
         [RegularExpression(@"^(?!\s*$).+", ErrorMessage = "A cím nem lehet csak whitespace.")]
@@ -23,7 +23,6 @@ namespace LibrarySystem.Api.Entities
 
         [Required(ErrorMessage = "A kiadás éve kötelező.")]
         [Range(0, int.MaxValue, ErrorMessage = "A kiadás éve nem lehet negatív.")]
-        public int ReleaseYear { get; set; }
-        public bool IsBorrowed { get; set; }
+        public int PublicationYear { get; set; }
     }
 }
