@@ -13,21 +13,19 @@ namespace LibrarySystem.Api.Entities
         public int ReaderNumber { get; set; }
 
         [Required]
-        [Column("BookNumber")] 
-        public int BookInventoryNumber { get; set; }
+        public int BookNumber { get; set; }
 
         [Required(ErrorMessage = "A kölcsönzés ideje kötelező.")]
         public DateTime LoanDate { get; set; }
 
         [Required(ErrorMessage = "A határidő kötelező.")]
         public DateTime ReturnDeadline { get; set; }
-        
-        // Ez a mező nem kerül az adatbázisba, de az API visszaadja 
-        [NotMapped]
-        public decimal PenaltyFee { get; set; }
 
         public Reader? Reader { get; set; }
         public Book? Book { get; set; }
+
+        [NotMapped]
+        public int LateFee { get; set; }
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {

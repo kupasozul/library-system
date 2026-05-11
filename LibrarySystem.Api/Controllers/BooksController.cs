@@ -5,34 +5,71 @@ using LibrarySystem.Api.Entities;
 
 namespace LibrarySystem.Api.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
+    [Route("api/[controller]")]
     public class BooksController : ControllerBase
     {
         private readonly LibraryDbContext _context;
-        public BooksController(LibraryDbContext context) => _context = context;
+
+        public BooksController(LibraryDbContext context)
+        {
+            _context = context;
+        }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Book>>> GetBooks() => await _context.Books.ToListAsync();
+        public async Task<ActionResult<IEnumerable<Book>>> GetBooks()
+        {
+            return await _context.Books.ToListAsync();
+        }
 
-        [HttpGet("available")]
-        public async Task<ActionResult<IEnumerable<Book>>> GetAvailableBooks()
-            => await _context.Books.Where(b => !b.IsBorrowed).ToListAsync();
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Book>> GetBook(int id)
+        {
+            var book = await _context.Books.FindAsync(id);
+
+            if (book == null)
+            {
+                return NotFound("A keresett könyv nem található.");
+            }
+
+            return book;
+        }
 
         [HttpPost]
         public async Task<ActionResult<Book>> PostBook(Book book)
         {
             _context.Books.Add(book);
             await _context.SaveChangesAsync();
-            return CreatedAtAction(nameof(GetBooks), new { id = book.InventoryNumber }, book);
+
+            return CreatedAtAction(nameof(GetBook), new { id = book.BookNumber }, book);
         }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> PutBook(int id, Book book)
         {
-            if (id != book.InventoryNumber) return BadRequest();
+            if (id != book.BookNumber)
+            {
+                return BadRequest("Az URL-ben lévő ID nem egyezik a könyv adatlapján lévővel.");
+            }
+
             _context.Entry(book).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!BookExists(id))
+                {
+                    return NotFound("A módosítani kívánt könyv nem található.");
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
             return NoContent();
         }
 
@@ -40,10 +77,20 @@ namespace LibrarySystem.Api.Controllers
         public async Task<IActionResult> DeleteBook(int id)
         {
             var book = await _context.Books.FindAsync(id);
-            if (book == null) return NotFound();
+            if (book == null)
+            {
+                return NotFound();
+            }
+
             _context.Books.Remove(book);
             await _context.SaveChangesAsync();
+
             return NoContent();
+        }
+
+        private bool BookExists(int id)
+        {
+            return _context.Books.Any(e => e.BookNumber == id);
         }
     }
 }

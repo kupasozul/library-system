@@ -19,7 +19,7 @@ namespace LibrarySystem.Api.Migrations
 
             modelBuilder.Entity("LibrarySystem.Api.Entities.Book", b =>
                 {
-                    b.Property<int>("InventoryNumber")
+                    b.Property<int>("BookNumber")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
@@ -27,50 +27,44 @@ namespace LibrarySystem.Api.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<bool>("IsBorrowed")
+                    b.Property<int>("PublicationYear")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Publisher")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("ReleaseYear")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.HasKey("InventoryNumber");
+                    b.HasKey("BookNumber");
 
                     b.ToTable("Books");
 
                     b.HasData(
                         new
                         {
-                            InventoryNumber = 1,
+                            BookNumber = 1,
                             Author = "Molnár Ferenc",
-                            IsBorrowed = false,
+                            PublicationYear = 1907,
                             Publisher = "Móra",
-                            ReleaseYear = 1907,
                             Title = "A Pál utcai fiúk"
                         },
                         new
                         {
-                            InventoryNumber = 2,
+                            BookNumber = 2,
                             Author = "Gárdonyi Géza",
-                            IsBorrowed = false,
+                            PublicationYear = 1901,
                             Publisher = "Dante",
-                            ReleaseYear = 1901,
                             Title = "Egri csillagok"
                         },
                         new
                         {
-                            InventoryNumber = 3,
+                            BookNumber = 3,
                             Author = "Robert C. Martin",
-                            IsBorrowed = false,
+                            PublicationYear = 2008,
                             Publisher = "Prentice Hall",
-                            ReleaseYear = 2008,
                             Title = "Clean Code"
                         });
                 });
@@ -81,10 +75,10 @@ namespace LibrarySystem.Api.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int?>("BookInventoryNumber")
+                    b.Property<int>("BookNumber")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("BookNumber")
+                    b.Property<int?>("BookNumber1")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("LoanDate")
@@ -101,7 +95,7 @@ namespace LibrarySystem.Api.Migrations
 
                     b.HasKey("LoanId");
 
-                    b.HasIndex("BookInventoryNumber");
+                    b.HasIndex("BookNumber1");
 
                     b.HasIndex("ReaderNumber1");
 
@@ -150,7 +144,7 @@ namespace LibrarySystem.Api.Migrations
                 {
                     b.HasOne("LibrarySystem.Api.Entities.Book", "Book")
                         .WithMany()
-                        .HasForeignKey("BookInventoryNumber");
+                        .HasForeignKey("BookNumber1");
 
                     b.HasOne("LibrarySystem.Api.Entities.Reader", "Reader")
                         .WithMany()
